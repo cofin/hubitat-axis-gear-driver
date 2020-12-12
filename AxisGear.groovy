@@ -12,7 +12,7 @@
 import groovy.json.JsonOutput
 
 metadata {
-	definition (name: "AXIS Gear", namespace: "axis", author: "AXIS Labs", importURL: "") {  
+	definition (name: "AXIS Gear", namespace: "axis", author: "AXIS Labs", importURL: "https://raw.githubusercontent.com/cofin/hubitat-axis-gear-driver/main/AxisGear.groovy") {  
 		capability "Actuator"
 		capability "Battery"
 		capability "Configuration"
