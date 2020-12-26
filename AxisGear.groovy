@@ -18,17 +18,18 @@ metadata {
 		capability "Configuration"
 		capability "Refresh"
 		capability "WindowShade"
-		capability "HealthCheck"
+		//capability "HealthCheck"
         capability "SwitchLevel"
-        capability "ChangeLevel"
+        //capability "ChangeLevel"
         capability "Switch"
         capability "Initialize"
         capability "Refresh"
-		command "stop"
+        command"presetPosition"
+        command "ShadesUp"
+        command "ShadesDown"
 
-		//fingerprint profileID: "0104", manufacturer: "AXIS", model: "Gear", deviceJoinName: "AXIS Gear"
-		//fingerprint profileId: "0104", deviceId: "0202", inClusters: "0000, 0003, 0006, 0008, 0102, 0020, 0001", outClusters: "0019", manufacturer: "AXIS", model: "Gear", deviceJoinName: "AXIS Gear"
-		fingerprint manufacturer: "AXIS", model: "Gear", deviceJoinName: "AXIS Gear"
+		fingerprint profileID: "0104", manufacturer: "AXIS", model: "Gear", deviceJoinName: "AXIS Gear"
+		fingerprint profileId: "0104", deviceId: "0202", inClusters: "0000, 0003, 0006, 0008, 0102, 0020, 0001", outClusters: "0019", manufacturer: "AXIS", model: "Gear", deviceJoinName: "AXIS Gear"
 	}
 
     preferences() {    	
@@ -131,6 +132,32 @@ def onOffEventHandler(onOff) {
     state.switch = onOff
 }
 
+//Custom command to increment blind position by 25 %
+def ShadesUp(){
+	def shadeValue = device.latestValue("level") as Integer ?: 0 
+    
+    if (shadeValue < 100){
+      	shadeValue = Math.min(25 * (Math.round(shadeValue / 25) + 1), 100) as Integer
+    }else { 
+    	shadeValue = 100
+	}
+    //sendEvent(name:"level", value:shadeValue, displayed:true)
+    setLevel(shadeValue)
+}
+
+//Custom command to decrement blind position by 25 %
+def ShadesDown(){
+	def shadeValue = device.latestValue("level") as Integer ?: 0 
+    
+    if (shadeValue > 0){
+      	shadeValue = Math.max(25 * (Math.round(shadeValue / 25) - 1), 0) as Integer
+    }else { 
+    	shadeValue = 0
+	}
+    //sendEvent(name:"level", value:shadeValue, displayed:true)
+    setLevel(shadeValue)
+	   
+}
 
 def levelEventHandler(currentLevel) {
 
@@ -147,6 +174,7 @@ def levelEventHandler(currentLevel) {
         state.level = currentLevel
 		if (currentLevel == 0 || currentLevel == 100) {
 			sendEvent(name: "windowShade", value: currentLevel == 0 ? "closed" : "open")
+            sendEvent(name: "switch", value: currentLevel == 0 ? "off" : "on")
             state.windowShade = currentLevel == 0 ? "closed" : "open"
 		} else {
 			if (lastLevel < currentLevel) {
@@ -171,6 +199,7 @@ def updateFinalState() {
 	if(logEnable) log.debug "updateFinalState: ${level}"
 	if (level > 0 && level < 100) {
 		sendEvent(name: "windowShade", value: "partially open")
+        sendEvent(name: "switch", value: "on")
         state.windowShade = "partially open"
 	}
 }
@@ -190,8 +219,8 @@ def close() {
     zigbee.command(CLUSTER_WINDOW_COVERING, COMMAND_CLOSE)
     runIn(10, "updateFinalState", [overwrite:true])
     
-    
     setLevel(0)
+  
 }
 
 def open() {
@@ -204,6 +233,15 @@ def open() {
     setLevel(100)
     
 }
+
+def on(){
+    open()
+}
+
+def off(){
+    close()
+}
+
 
 def setLevel(data, rate = null) {
 	if(logEnable) log.info "setLevel()"
